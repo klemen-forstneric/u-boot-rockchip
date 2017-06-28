@@ -113,7 +113,7 @@ static int setdma_rx(struct dwc2_ep *ep, struct dwc2_request *req)
 	invalidate_dcache_range((unsigned long) ep->dma_buf,
 				(unsigned long) ep->dma_buf + ep->len);
 
-	writel((unsigned int) ep->dma_buf, &reg->out_endp[ep_num].doepdma);
+	writel((u32)(uintptr_t) ep->dma_buf, &reg->out_endp[ep_num].doepdma);
 	writel(DOEPT_SIZ_PKT_CNT(pktcnt) | DOEPT_SIZ_XFER_SIZE(length),
 	       &reg->out_endp[ep_num].doeptsiz);
 	writel(DEPCTL_EPENA|DEPCTL_CNAK|ctrl, &reg->out_endp[ep_num].doepctl);
@@ -161,7 +161,7 @@ static int setdma_tx(struct dwc2_ep *ep, struct dwc2_request *req)
 	while (readl(&reg->grstctl) & TX_FIFO_FLUSH)
 		;
 
-	writel((unsigned long) ep->dma_buf, &reg->in_endp[ep_num].diepdma);
+	writel((u32)(uintptr_t) ep->dma_buf, &reg->in_endp[ep_num].diepdma);
 	writel(DIEPT_SIZ_PKT_CNT(pktcnt) | DIEPT_SIZ_XFER_SIZE(length),
 	       &reg->in_endp[ep_num].dieptsiz);
 
