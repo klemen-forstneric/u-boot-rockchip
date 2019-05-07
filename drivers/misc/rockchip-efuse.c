@@ -42,7 +42,6 @@ struct rockchip_efuse_platdata {
 	struct clk *clk;
 };
 
-#if defined(DEBUG)
 static int dump_efuses(cmd_tbl_t *cmdtp, int flag,
 		       int argc, char * const argv[])
 {
@@ -81,7 +80,6 @@ U_BOOT_CMD(
 	"Dump the content of the efuses",
 	""
 );
-#endif
 
 static int rockchip_rk3399_efuse_read(struct udevice *dev, int offset,
 				      void *buf, int size)
