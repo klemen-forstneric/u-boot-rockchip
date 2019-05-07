@@ -52,7 +52,7 @@ static int dump_efuses(cmd_tbl_t *cmdtp, int flag,
 	 */
 
 	struct udevice *dev;
-	u8 fuses[128];
+	u8 fuses[32];
 	int ret;
 
 	/* retrieve the device */
