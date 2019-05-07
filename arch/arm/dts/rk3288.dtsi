@@ -47,6 +47,13 @@
 		spi1 = &spi1;
 		spi2 = &spi2;
 	};
+	
+	efuse0: efuse@ff690000 {
+		compatible = "rockchip,rk3399-efuse";
+		reg = <0x0 0xff690000 0x0 0x80>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+	};
 
 	cpus {
 		#address-cells = <1>;
