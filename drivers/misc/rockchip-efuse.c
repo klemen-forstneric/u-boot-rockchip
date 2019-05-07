@@ -65,7 +65,7 @@ static int read_efuses(cmd_tbl_t *cmdtp, int flag, int argc,
   }
 
   printf("efuse-contents:\n");
-  print_buffer(0, fuses, 1, RK3288_NFUSES * RK3288_BYTES_PER_FUSE], 16);
+  print_buffer(0, fuses, 1, RK3288_NFUSES * RK3288_BYTES_PER_FUSE, 16);
 
   return 0;
 }
