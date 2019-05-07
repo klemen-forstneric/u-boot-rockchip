@@ -1,9 +1,10 @@
-// SPDX-License-Identifier: GPL-2.0+
 /*
  * eFuse driver for Rockchip devices
  *
  * Copyright 2017, Theobroma Systems Design und Consulting GmbH
  * Written by Philipp Tomsich <philipp.tomsich@theobroma-systems.com>
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -15,17 +16,17 @@
 #include <linux/delay.h>
 #include <misc.h>
 
-#define RK3399_A_SHIFT          16
-#define RK3399_A_MASK           0x3ff
-#define RK3399_NFUSES           32
-#define RK3399_BYTES_PER_FUSE   4
-#define RK3399_STROBSFTSEL      BIT(9)
-#define RK3399_RSB              BIT(7)
-#define RK3399_PD               BIT(5)
-#define RK3399_PGENB            BIT(3)
-#define RK3399_LOAD             BIT(2)
-#define RK3399_STROBE           BIT(1)
-#define RK3399_CSB              BIT(0)
+#define RK3288_A_SHIFT          6
+#define RK3288_A_MASK           0x3ff
+#define RK3288_NFUSES           32
+#define RK3288_BYTES_PER_FUSE   1
+#define RK3288_PGENB            BIT(3)
+#define RK3288_LOAD             BIT(2)
+#define RK3288_STROBE           BIT(1)
+#define RK3288_CSB              BIT(0)
+
+#define NUM_BITS_IN_BYTE 8
+#define SEVENTH_BIT (1 << 7)
 
 struct rockchip_efuse_regs {
 	u32 ctrl;      /* 0x00  efuse control register */
@@ -42,29 +43,21 @@ struct rockchip_efuse_platdata {
 	struct clk *clk;
 };
 
-static int dump_efuses(cmd_tbl_t *cmdtp, int flag,
-		       int argc, char * const argv[])
-{
-	/*
-	 * N.B.: This function is tailored towards the RK3399 and assumes that
-	 *       there's always 32 fuses x 32 bits (i.e. 128 bytes of data) to
-	 *       be read.
-	 */
-
+static int read_efuses(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]) {
 	struct udevice *dev;
-	u8 fuses[32];
+	u8 fuses[RK3288_NFUSES * RK3288_BYTES_PER_FUSE] = {0};
 	int ret;
 
 	/* retrieve the device */
-	ret = uclass_get_device_by_driver(UCLASS_MISC,
-					  DM_GET_DRIVER(rockchip_efuse), &dev);
+	ret = uclass_get_device_by_driver(UCLASS_MISC, DM_GET_DRIVER(rockchip_efuse), &dev);
+
 	if (ret) {
 		printf("%s: no misc-device found\n", __func__);
 		return 0;
 	}
 
 	ret = misc_read(dev, 0, &fuses, sizeof(fuses));
-	if (ret < 0) {
+	if (ret) {
 		printf("%s: misc_read failed\n", __func__);
 		return 0;
 	}
@@ -75,64 +68,136 @@ static int dump_efuses(cmd_tbl_t *cmdtp, int flag,
 	return 0;
 }
 
-U_BOOT_CMD(
-	rk3399_dump_efuses, 1, 1, dump_efuses,
-	"Dump the content of the efuses",
-	""
-);
+static int write_efuses(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]) {
+	struct udevice *dev;
+	int ret;
 
-static int rockchip_rk3399_efuse_read(struct udevice *dev, int offset,
-				      void *buf, int size)
-{
-	struct rockchip_efuse_platdata *plat = dev_get_platdata(dev);
-	struct rockchip_efuse_regs *efuse =
-		(struct rockchip_efuse_regs *)plat->base;
-
-	unsigned int addr_start, addr_end, addr_offset;
-	u32 out_value;
-	u8  bytes[RK3399_NFUSES * RK3399_BYTES_PER_FUSE];
-	int i = 0;
-	u32 addr;
-
-	addr_start = offset / RK3399_BYTES_PER_FUSE;
-	addr_offset = offset % RK3399_BYTES_PER_FUSE;
-	addr_end = DIV_ROUND_UP(offset + size, RK3399_BYTES_PER_FUSE);
-
-	/* cap to the size of the efuse block */
-	if (addr_end > RK3399_NFUSES)
-		addr_end = RK3399_NFUSES;
-
-	writel(RK3399_LOAD | RK3399_PGENB | RK3399_STROBSFTSEL | RK3399_RSB,
-	       &efuse->ctrl);
-	udelay(1);
-	for (addr = addr_start; addr < addr_end; addr++) {
-		setbits_le32(&efuse->ctrl,
-			     RK3399_STROBE | (addr << RK3399_A_SHIFT));
-		udelay(1);
-		out_value = readl(&efuse->dout);
-		clrbits_le32(&efuse->ctrl, RK3399_STROBE);
-		udelay(1);
-
-		memcpy(&bytes[i], &out_value, RK3399_BYTES_PER_FUSE);
-		i += RK3399_BYTES_PER_FUSE;
+	/* retrieve the device */
+	ret = uclass_get_device_by_driver(UCLASS_MISC, DM_GET_DRIVER(rockchip_efuse), &dev);
+	if (ret) {
+		printf("%s: no misc-device found\n", __func__);
+		return 0;
 	}
 
-	/* Switch to standby mode */
-	writel(RK3399_PD | RK3399_CSB, &efuse->ctrl);
-
-	memcpy(buf, bytes + addr_offset, size);
+	ret = misc_write(dev, 0, argv[1], strlen(argv[1]));
+	if (ret) {
+		printf("%s: misc_write failed\n", __func__);
+		return 0;
+	}
 
 	return 0;
 }
 
-static int rockchip_efuse_read(struct udevice *dev, int offset,
-			       void *buf, int size)
-{
-	return rockchip_rk3399_efuse_read(dev, offset, buf, size);
+U_BOOT_CMD(
+	rockchip_read_efuses, 1, 0, read_efuses,
+	"Read the content of the efuses",
+	""
+);
+
+U_BOOT_CMD(
+	rockchip_write_efuses, 2, 0, write_efuses,
+	"Write the content of the efuses",
+	""
+);
+
+static int rockchip_efuse_read(struct udevice *dev, int offset, void *buf, int size) {
+	struct rockchip_efuse_platdata *plat = dev_get_platdata(dev);
+	struct rockchip_efuse_regs *efuse = (struct rockchip_efuse_regs *)plat->base;
+	u8 *buffer = buf;
+	int max_size = RK3288_NFUSES * RK3288_BYTES_PER_FUSE;
+
+	if (size > (max_size - offset))
+		size = max_size - offset;
+
+	/* Switch to read mode */
+	writel(RK3288_LOAD | RK3288_PGENB, &efuse->ctrl);
+	udelay(1);
+
+	while (size--) {
+		writel(readl(&efuse->ctrl) &
+				(~(RK3288_A_MASK << RK3288_A_SHIFT)),
+				&efuse->ctrl);
+		/* set addr */
+		writel(readl(&efuse->ctrl) |
+				((offset++ & RK3288_A_MASK) << RK3288_A_SHIFT),
+				&efuse->ctrl);
+		udelay(1);
+		/* strobe low to high */
+		writel(readl(&efuse->ctrl) |
+				RK3288_STROBE, &efuse->ctrl);
+		ndelay(60);
+		/* read data */
+		*buffer++ = readl(&efuse->dout);
+		/* reset strobe to low */
+		writel(readl(&efuse->ctrl) &
+				(~RK3288_STROBE), &efuse->ctrl);
+		udelay(1);
+	}
+
+	/* Switch to standby mode */
+	writel(RK3288_PGENB | RK3288_CSB, &efuse->ctrl);
+
+	return 0;
+}
+
+static int rockchip_efuse_write(struct udevice *dev, int offset, void *buf, int size) {
+	struct rockchip_efuse_platdata *plat = dev_get_platdata(dev);
+	struct rockchip_efuse_regs *efuse = (struct rockchip_efuse_regs *)plat->base;
+	u8 *buffer = buf;
+	int max_size = RK3288_NFUSES * RK3288_BYTES_PER_FUSE;
+
+	if (size > (max_size - offset))
+		size = max_size - offset;
+
+  // Switch to pgm mode by setting load and pgenb to low
+	writel(readl(&efuse->ctrl) &
+				(~(RK3288_LOAD | RK3288_PGENB | RK3288_CSB)), &efuse->ctrl);
+
+  int i;
+  for(i = 0; i < size; ++i) {
+    u8 current = buffer[i];
+    u8 bitmask = SEVENTH_BIT;
+
+    int j;
+    for (j = 0; j < NUM_BITS_IN_BYTE; ++j) {
+      if (current & bitmask) {
+        writel(readl(&efuse->ctrl) &
+            (~(RK3288_A_MASK << RK3288_A_SHIFT)),
+            &efuse->ctrl);
+
+        // Set address.
+        writel(readl(&efuse->ctrl) |
+            ((offset & RK3288_A_MASK) << RK3288_A_SHIFT),
+            &efuse->ctrl);
+        udelay(1);
+
+        // Set strobe low to high.
+        writel(readl(&efuse->ctrl) |
+            RK3288_STROBE, &efuse->ctrl);
+
+        // Wait for the fuses to blow.
+        ndelay(60);
+
+        // Reset strobe to low.
+        writel(readl(&efuse->ctrl) &
+            (~RK3288_STROBE), &efuse->ctrl);
+        udelay(1);
+      }
+
+      ++offset;
+      bitmask >>= 1;
+    }
+  }
+
+	// Switch to standby mode
+	writel(RK3288_PGENB | RK3288_CSB, &efuse->ctrl);
+
+  return 0;
 }
 
 static const struct misc_ops rockchip_efuse_ops = {
 	.read = rockchip_efuse_read,
+  .write = rockchip_efuse_write,
 };
 
 static int rockchip_efuse_ofdata_to_platdata(struct udevice *dev)
@@ -144,7 +209,9 @@ static int rockchip_efuse_ofdata_to_platdata(struct udevice *dev)
 }
 
 static const struct udevice_id rockchip_efuse_ids[] = {
-	{ .compatible = "rockchip,rk3399-efuse" },
+	{
+		.compatible = "rockchip,rk3399-efuse",
+	},
 	{}
 };
 
