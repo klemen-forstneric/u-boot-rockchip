@@ -148,6 +148,7 @@ static int rockchip_efuse_write(struct udevice *dev, int offset, void *buf,
   // Switch to pgm mode by setting load and pgenb to low
   writel(readl(&efuse->ctrl) & (~(RK3288_LOAD | RK3288_PGENB | RK3288_CSB)),
          &efuse->ctrl);
+  udelay(1);
 
   printf("Trying to write '%s'..\n", (char*)buf);
 
