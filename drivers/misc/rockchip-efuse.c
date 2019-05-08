@@ -162,7 +162,7 @@ static int rockchip_efuse_write(struct udevice *dev, int offset, void *buf,
     int j;
     for (j = 0; j < NUM_BITS_IN_BYTE; ++j) {
       if (current & bitmask) {
-        printf("1");
+        /*printf("1");*/
 
         writel(readl(&efuse->ctrl) & (~(RK3288_A_MASK << RK3288_A_SHIFT)),
                &efuse->ctrl);
@@ -171,6 +171,8 @@ static int rockchip_efuse_write(struct udevice *dev, int offset, void *buf,
         writel(readl(&efuse->ctrl) | ((o & RK3288_A_MASK) << RK3288_A_SHIFT),
                &efuse->ctrl);
         udelay(1);
+
+        printf("EFUSE_CTRL: %x\n", ((o & RK3288_A_MASK) << RK3288_A_SHIFT));
 
         // Set strobe low to high.
         writel(readl(&efuse->ctrl) | RK3288_STROBE, &efuse->ctrl);
@@ -182,7 +184,7 @@ static int rockchip_efuse_write(struct udevice *dev, int offset, void *buf,
         writel(readl(&efuse->ctrl) & (~RK3288_STROBE), &efuse->ctrl);
         udelay(1);
       } else {
-        printf("0");
+        /*printf("0");*/
       }
 
       ++o;
