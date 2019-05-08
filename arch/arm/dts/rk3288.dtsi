@@ -916,9 +916,9 @@
 		reg = <0xffac0000 0x2000>;
 	};
 
-	efuse: efuse@ffb40000 {
+	efuse: efuse@ffb10000 {
 		compatible = "rockchip,rk3399-efuse";
-		reg = <0xffb40000 0x10000>;
+		reg = <0xffb10000 0x10000>;
 	};
 
 	gic: interrupt-controller@ffc01000 {
