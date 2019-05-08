@@ -145,12 +145,14 @@ static int rockchip_efuse_write(struct udevice *dev, int offset, void *buf,
   if (size > (max_size - offset))
     size = max_size - offset;
 
+  u32 o = (u32)offset;
+
   // Switch to pgm mode by setting load and pgenb to low
   writel(readl(&efuse->ctrl) & (~(RK3288_LOAD | RK3288_PGENB | RK3288_CSB)),
          &efuse->ctrl);
   udelay(1);
 
-  printf("Trying to write '%s'..\n", (char*)buf);
+  printf("Trying to write '%s'..\n", (char *)buf);
 
   int i;
   for (i = 0; i < size; ++i) {
@@ -166,8 +168,7 @@ static int rockchip_efuse_write(struct udevice *dev, int offset, void *buf,
                &efuse->ctrl);
 
         // Set address.
-        writel(readl(&efuse->ctrl) |
-                   ((offset & RK3288_A_MASK) << RK3288_A_SHIFT),
+        writel(readl(&efuse->ctrl) | ((o & RK3288_A_MASK) << RK3288_A_SHIFT),
                &efuse->ctrl);
         udelay(1);
 
@@ -184,7 +185,7 @@ static int rockchip_efuse_write(struct udevice *dev, int offset, void *buf,
         printf("0");
       }
 
-      ++offset;
+      ++o;
       bitmask >>= 1;
     }
     printf("\n");
