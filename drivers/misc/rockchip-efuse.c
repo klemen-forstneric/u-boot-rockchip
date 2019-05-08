@@ -123,7 +123,7 @@ static int rockchip_efuse_read(struct udevice *dev, int offset, void *buf,
     writel(readl(&efuse->ctrl) | RK3288_STROBE, &efuse->ctrl);
     ndelay(60);
     /* read data */
-    *buffer++ = readl(&efuse->dout);
+    *buffer++ = readb(&efuse->dout);
     /* reset strobe to low */
     writel(readl(&efuse->ctrl) & (~RK3288_STROBE), &efuse->ctrl);
     udelay(1);
