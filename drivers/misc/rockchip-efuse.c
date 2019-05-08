@@ -175,7 +175,7 @@ static int rockchip_efuse_write(struct udevice *dev, int offset, void *buf,
         writel(readl(&efuse->ctrl) | RK3288_STROBE, &efuse->ctrl);
 
         // Wait for the fuses to blow.
-        ndelay(60);
+        udelay(10);
 
         // Reset strobe to low.
         writel(readl(&efuse->ctrl) & (~RK3288_STROBE), &efuse->ctrl);
