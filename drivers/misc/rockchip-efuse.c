@@ -18,7 +18,7 @@
 
 #define RK3288_A_SHIFT 6
 #define RK3288_A_MASK 0x3ff
-#define RK3288_NFUSES 32
+#define RK3288_NFUSES 128
 #define RK3288_BYTES_PER_FUSE 1
 #define RK3288_PGENB BIT(3)
 #define RK3288_LOAD BIT(2)
