@@ -108,7 +108,7 @@ static int rockchip_efuse_read(struct udevice *dev, int offset, void *buf,
   if (size > (max_size - offset))
     size = max_size - offset;
 
-  u32 o = 0x100 | ((u32)offset);
+  u32 o = (u32)offset;
 
   /* Switch to read mode */
   writel(RK3288_LOAD | RK3288_PGENB, &efuse->ctrl);
@@ -148,92 +148,47 @@ static int rockchip_efuse_write(struct udevice *dev, int offset, void *buf,
   if (size > (max_size - offset))
     size = max_size - offset;
 
-  /*u32 o = (u32)offset;*/
+  u32 o = (u32)offset;
 
   // Switch to pgm mode by setting load and pgenb to low
   writel(readl(&efuse->ctrl) & (~(RK3288_LOAD | RK3288_PGENB | RK3288_CSB)),
          &efuse->ctrl);
   udelay(1);
 
-  /*printf("Trying to write '%s'..\n", (char *)buf);*/
+  for (int i = 0; i < size; ++i) {
+    u8 current = buffer[i];
 
-  u8 a[] = {0x00, 0x20, 0x40, 0x60};
+    u32 bit = 0;
+    for (int j = 0; j < NUM_BITS_IN_BYTE; ++j) {
+      if (current & 1) {
+        writel(readl(&efuse->ctrl) & (~(RK3288_A_MASK << RK3288_A_SHIFT)),
+               &efuse->ctrl);
 
-  for (int i = 0; i < 4; ++i) {
-    printf("Trying to write '%x'..\n", a[i]);
+        // Set address.
+        writel(readl(&efuse->ctrl) |
+                   ((((bit << 5) | o) & RK3288_A_MASK) << RK3288_A_SHIFT),
+               &efuse->ctrl);
+        udelay(1);
 
-    writel(readl(&efuse->ctrl) & (~(RK3288_A_MASK << RK3288_A_SHIFT)),
-           &efuse->ctrl);
+        // Set strobe low to high.
+        writel(readl(&efuse->ctrl) | RK3288_STROBE, &efuse->ctrl);
 
-    // Set address.
-    writel(readl(&efuse->ctrl) | ((a[i] & RK3288_A_MASK) << RK3288_A_SHIFT),
-           &efuse->ctrl);
-    udelay(1);
+        printf("ctrl: %x\n", readl(&efuse->ctrl));
 
-    // Set strobe low to high.
-    writel(readl(&efuse->ctrl) | RK3288_STROBE, &efuse->ctrl);
+        // Wait for the fuses to blow.
+        udelay(10);
 
-    printf("efuse_ctrl: %x\n", readl(&efuse->ctrl));
+        // Reset strobe to low.
+        writel(readl(&efuse->ctrl) & (~RK3288_STROBE), &efuse->ctrl);
+        udelay(1);
+      }
 
-    // Wait for the fuses to blow.
-    udelay(10);
+      current >>= 1;
+      ++bit;
+    }
 
-    // Reset strobe to low.
-    writel(readl(&efuse->ctrl) & (~RK3288_STROBE), &efuse->ctrl);
-    udelay(1);
+    ++o;
   }
-
-  /*int i;*/
-  /*for (i = 0; i < size; ++i) {*/
-  /*u8 current = buffer[i];*/
-  /*u8 bitmask = SEVENTH_BIT;*/
-  /**/
-  /*printf("Writing 0b");*/
-  /**/
-  /*int k;*/
-  /*for (k = 0; k < NUM_BITS_IN_BYTE; ++k) {*/
-  /*  if (current & bitmask) {*/
-  /*    printf("1");*/
-  /*  } else {*/
-  /*    printf("0");*/
-  /*  }*/
-  /**/
-  /*  bitmask >>= 1;*/
-  /*}*/
-  /*printf("..\n");*/
-  /**/
-  /*bitmask = SEVENTH_BIT;*/
-  /**/
-  /*int j;*/
-  /*for (j = 0; j < NUM_BITS_IN_BYTE; ++j) {*/
-  /*  if (current & bitmask) {*/
-  /**/
-  /*    writel(readl(&efuse->ctrl) & (~(RK3288_A_MASK << RK3288_A_SHIFT)),*/
-  /*           &efuse->ctrl);*/
-  /**/
-  /*    // Set address.*/
-  /*    writel(readl(&efuse->ctrl) | ((o & RK3288_A_MASK) << RK3288_A_SHIFT),*/
-  /*           &efuse->ctrl);*/
-  /*    udelay(1);*/
-  /**/
-  /*    // Set strobe low to high.*/
-  /*    writel(readl(&efuse->ctrl) | RK3288_STROBE, &efuse->ctrl);*/
-  /**/
-  /*    printf("offset %x, efuse_ctrl: %x\n", o, readl(&efuse->ctrl));*/
-  /**/
-  /*    // Wait for the fuses to blow.*/
-  /*    udelay(10);*/
-  /**/
-  /*    // Reset strobe to low.*/
-  /*    writel(readl(&efuse->ctrl) & (~RK3288_STROBE), &efuse->ctrl);*/
-  /*    udelay(1);*/
-  /*  }*/
-  /**/
-  /*  ++o;*/
-  /*  bitmask >>= 1;*/
-  /*}*/
-  /*printf("\n");*/
-  /*}*/
 
   // Switch to standby mode
   writel(RK3288_PGENB | RK3288_CSB, &efuse->ctrl);
