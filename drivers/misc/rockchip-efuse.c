@@ -26,7 +26,6 @@
 #define RK3288_CSB BIT(0)
 
 #define NUM_BITS_IN_BYTE 8
-#define SEVENTH_BIT (1 << 7)
 
 struct rockchip_efuse_regs {
   u32 ctrl; /* 0x00  efuse control register */
@@ -117,16 +116,19 @@ static int rockchip_efuse_read(struct udevice *dev, int offset, void *buf,
   while (size--) {
     writel(readl(&efuse->ctrl) & (~(RK3288_A_MASK << RK3288_A_SHIFT)),
            &efuse->ctrl);
+
     /* set addr */
     writel(readl(&efuse->ctrl) | ((o++ & RK3288_A_MASK) << RK3288_A_SHIFT),
            &efuse->ctrl);
     udelay(1);
+
     /* strobe low to high */
     writel(readl(&efuse->ctrl) | RK3288_STROBE, &efuse->ctrl);
     ndelay(60);
+
     /* read data */
-    printf("address: %x\n", readl(&efuse->ctrl));
     *buffer++ = readl(&efuse->dout);
+
     /* reset strobe to low */
     writel(readl(&efuse->ctrl) & (~RK3288_STROBE), &efuse->ctrl);
     udelay(1);
@@ -173,9 +175,7 @@ static int rockchip_efuse_write(struct udevice *dev, int offset, void *buf,
         // Set strobe low to high.
         writel(readl(&efuse->ctrl) | RK3288_STROBE, &efuse->ctrl);
 
-        printf("ctrl: %x\n", readl(&efuse->ctrl));
-
-        // Wait for the fuses to blow.
+        // Wait for the fuse to blow.
         udelay(10);
 
         // Reset strobe to low.
