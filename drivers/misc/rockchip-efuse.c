@@ -123,7 +123,7 @@ static int rockchip_efuse_read(struct udevice *dev, int offset, void *buf,
     writel(readl(&efuse->ctrl) | RK3288_STROBE, &efuse->ctrl);
     ndelay(60);
     /* read data */
-    printf("%x\n", readl(&efuse->ctrl));
+    printf("address: %x\n", readl(&efuse->ctrl));
     *buffer++ = readl(&efuse->dout);
     /* reset strobe to low */
     writel(readl(&efuse->ctrl) & (~RK3288_STROBE), &efuse->ctrl);
@@ -160,10 +160,25 @@ static int rockchip_efuse_write(struct udevice *dev, int offset, void *buf,
     u8 current = buffer[i];
     u8 bitmask = SEVENTH_BIT;
 
+    printf("Writing 0b");
+
+    int k;
+    for (k = 0; k < NUM_BITS_IN_BYTE; ++k) {
+      if (current & bitmask) {
+        printf("1");
+      } else {
+        printf("0");
+      }
+
+      bitmask >>= 1;
+    }
+    printf("..\n");
+
+    u8 bitmask = SEVENTH_BIT;
+
     int j;
     for (j = 0; j < NUM_BITS_IN_BYTE; ++j) {
       if (current & bitmask) {
-        /*printf("1");*/
 
         writel(readl(&efuse->ctrl) & (~(RK3288_A_MASK << RK3288_A_SHIFT)),
                &efuse->ctrl);
@@ -176,7 +191,7 @@ static int rockchip_efuse_write(struct udevice *dev, int offset, void *buf,
         // Set strobe low to high.
         writel(readl(&efuse->ctrl) | RK3288_STROBE, &efuse->ctrl);
 
-        printf("EFUSE_CTRL: %x\n", readl(&efuse->ctrl));
+        printf("offset %x, efuse_ctrl: %x\n", o, readl(&efuse->ctrl));
 
         // Wait for the fuses to blow.
         udelay(10);
@@ -184,8 +199,6 @@ static int rockchip_efuse_write(struct udevice *dev, int offset, void *buf,
         // Reset strobe to low.
         writel(readl(&efuse->ctrl) & (~RK3288_STROBE), &efuse->ctrl);
         udelay(1);
-      } else {
-        /*printf("0");*/
       }
 
       ++o;
