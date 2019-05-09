@@ -173,7 +173,7 @@ static int rockchip_efuse_write(struct udevice *dev, int offset, void *buf,
                &efuse->ctrl);
         udelay(1);
 
-        printf("EFUSE_CTRL: %x\n", ((o & RK3288_A_MASK) << RK3288_A_SHIFT));
+        printf("EFUSE_CTRL: %x\n", readl(&efuse->ctrl));
 
         // Set strobe low to high.
         writel(readl(&efuse->ctrl) | RK3288_STROBE, &efuse->ctrl);
