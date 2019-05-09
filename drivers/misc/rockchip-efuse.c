@@ -18,7 +18,7 @@
 
 #define RK3288_A_SHIFT 6
 #define RK3288_A_MASK 0x3ff
-#define RK3288_NFUSES 128
+#define RK3288_NFUSES 32
 #define RK3288_BYTES_PER_FUSE 1
 #define RK3288_PGENB BIT(3)
 #define RK3288_LOAD BIT(2)
@@ -108,6 +108,8 @@ static int rockchip_efuse_read(struct udevice *dev, int offset, void *buf,
   if (size > (max_size - offset))
     size = max_size - offset;
 
+  u32 o = 0x100 | ((u32)offset);
+
   /* Switch to read mode */
   writel(RK3288_LOAD | RK3288_PGENB, &efuse->ctrl);
   udelay(1);
@@ -116,7 +118,7 @@ static int rockchip_efuse_read(struct udevice *dev, int offset, void *buf,
     writel(readl(&efuse->ctrl) & (~(RK3288_A_MASK << RK3288_A_SHIFT)),
            &efuse->ctrl);
     /* set addr */
-    writel(readl(&efuse->ctrl) | ((offset++ & RK3288_A_MASK) << RK3288_A_SHIFT),
+    writel(readl(&efuse->ctrl) | ((o++ & RK3288_A_MASK) << RK3288_A_SHIFT),
            &efuse->ctrl);
     udelay(1);
     /* strobe low to high */
