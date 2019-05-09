@@ -174,7 +174,7 @@ static int rockchip_efuse_write(struct udevice *dev, int offset, void *buf,
     }
     printf("..\n");
 
-    u8 bitmask = SEVENTH_BIT;
+    bitmask = SEVENTH_BIT;
 
     int j;
     for (j = 0; j < NUM_BITS_IN_BYTE; ++j) {
