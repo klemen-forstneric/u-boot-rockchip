@@ -119,8 +119,6 @@ static int rockchip_efuse_read(struct udevice *dev, int offset, void *buf,
     u32 o = (u32)offset++;
     o = ((o << 3) & 0x300) | (o & 0x1F);
 
-    printf("Reading address: %x\n", o);
-
     writel(readl(&efuse->ctrl) | ((o & RK3288_A_MASK) << RK3288_A_SHIFT),
            &efuse->ctrl);
     udelay(1);
@@ -128,6 +126,8 @@ static int rockchip_efuse_read(struct udevice *dev, int offset, void *buf,
     /* strobe low to high */
     writel(readl(&efuse->ctrl) | RK3288_STROBE, &efuse->ctrl);
     ndelay(60);
+
+    printf("Reading address: %x\n", readl(&efuse->ctrl));
 
     /* read data */
     *buffer++ = readl(&efuse->dout);
