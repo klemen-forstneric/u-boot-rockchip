@@ -84,7 +84,7 @@ static int write_efuses(cmd_tbl_t *cmdtp, int flag, int argc,
 
   if (argc != 2) {
     printf("%s: invalid argument count (should be 1, but is %d)\n", __func__,
-           argc);
+           argc - 1);
     return 0;
   }
 
