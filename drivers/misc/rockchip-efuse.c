@@ -57,7 +57,7 @@ static int read_efuses(cmd_tbl_t *cmdtp, int flag, int argc,
     return 0;
   }
 
-  ret = misc_read(dev, 0, &fuses, sizeof(fuses));
+  ret = misc_read(dev, 4, &fuses, sizeof(fuses));
   if (ret) {
     printf("%s: misc_read failed\n", __func__);
     return 0;
