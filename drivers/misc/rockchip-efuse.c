@@ -57,7 +57,7 @@ static int read_efuses(cmd_tbl_t *cmdtp, int flag, int argc,
     return 0;
   }
 
-  ret = misc_read(dev, 4, &fuses, sizeof(fuses));
+  ret = misc_read(dev, 0, &fuses, sizeof(fuses));
   if (ret) {
     printf("%s: misc_read failed\n", __func__);
     return 0;
@@ -118,6 +118,8 @@ static int rockchip_efuse_read(struct udevice *dev, int offset, void *buf,
     /* set addr */
     u32 o = (u32)offset++;
     o = ((o << 3) & 0x300) | (o & 0x1F);
+
+    printf("Reading address: %x\n", o);
 
     writel(readl(&efuse->ctrl) | ((o & RK3288_A_MASK) << RK3288_A_SHIFT),
            &efuse->ctrl);
